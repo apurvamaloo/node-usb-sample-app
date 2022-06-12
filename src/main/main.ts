@@ -14,6 +14,28 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import { usb, WebUSB } from 'usb';
+
+let windows: any[] = [];
+
+const webusb = new WebUSB({
+    allowAllDevices: true
+});
+
+const showDevices = async () => {
+
+    const devices = await webusb.getDevices();
+    console.log("**********************")
+    devices.map(d =>console.log(d));
+    const text = devices.map(d => `${d.vendorId}\t${d.productId}\t${d.serialNumber || '<no serial>'}`);
+    text.unshift('VID\tPID\tSerial\n-------------------------------------');
+
+    windows.forEach(win => {
+        if (win) {
+            win.webContents.send('devices', text.join('\n'));
+        }
+    });
+};
 
 export default class AppUpdater {
   constructor() {
@@ -26,6 +48,7 @@ export default class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
+  showDevices();
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
